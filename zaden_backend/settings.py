@@ -27,7 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['zaden.tech','localhost']
 
-
 # Application definition
 
 INSTALLED_APPS = [
