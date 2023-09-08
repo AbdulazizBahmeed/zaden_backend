@@ -21,10 +21,11 @@ def signup(req):
     if req.method=="POST":
         email =email=req.POST.get("email")
         password =req.POST.get("password")
+        fullname =req.POST.get("fullname")
 
         if validaite_email(email) and validaite_passowrd(password):
             UserModel = get_user_model()
-            user = UserModel(email=email)
+            user = UserModel(email=email,fullname=fullname)
             user.set_password(password)
             try:
                 user.save()
@@ -61,7 +62,7 @@ def login(req):
             return JsonResponse({
                 "status":True,
                 "message":"User Logged In Succefully",
-                "user": user.email
+                "fullname": user.fullname
             }
             )
         else:
