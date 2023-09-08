@@ -32,7 +32,7 @@ def signup(req):
                 return JsonResponse({
                     "status":False,
                     "message":"User credentials already used"
-                })
+                },status=400)
             login_user(req,user)
             return JsonResponse({
                 "status":True,
