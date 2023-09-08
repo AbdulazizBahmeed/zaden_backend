@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login as login_user, logout as log
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 import re
+from django.db.utils import IntegrityError
 
 def validaite_email(email):
     pattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,3}$"
@@ -29,7 +30,7 @@ def signup(req):
             user.set_password(password)
             try:
                 user.save()
-            except:
+            except IntegrityError:
                 return JsonResponse({
                     "status":False,
                     "message":"User credentials already used"
