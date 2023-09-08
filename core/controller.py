@@ -39,6 +39,9 @@ def signup(req):
             return JsonResponse({
                 "status":True,
                 "message":"user signed up succefully",
+                "fullname": user.fullname,
+                "email": user.email,
+                "user_id": user.id
                 })
         else:
             return JsonResponse(
