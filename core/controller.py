@@ -63,7 +63,9 @@ def login(req):
             return JsonResponse({
                 "status":True,
                 "message":"User Logged In Succefully",
-                "fullname": user.fullname
+                "fullname": user.fullname,
+                "email": user.email,
+                "user_id": user.id
             }
             )
         else:
