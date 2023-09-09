@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 import re
 from django.db.utils import IntegrityError
+import json
 
 def validaite_email(email):
     pattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,3}$"
@@ -20,9 +21,10 @@ def validaite_passowrd(password):
 
 def signup(req):
     if req.method=="POST":
-        email =email=req.POST.get("email")
-        password =req.POST.get("password")
-        fullname =req.POST.get("fullname")
+        json_data = json.loads(req.body)
+        email = json_data.get("email")
+        password =json_data.get("password")
+        fullname = json_data.get("fullname")
 
         if validaite_email(email) and validaite_passowrd(password):
             UserModel = get_user_model()
@@ -58,8 +60,9 @@ def signup(req):
 
 def login(req):
     if req.method=="POST":
-        email =email=req.POST.get("email")
-        password =req.POST.get("password")
+        json_data = json.loads(req.body)
+        email = json_data.get("email")
+        password =json_data.get("password")
         user = authenticate(email=email,password=password)
         if user is not None:
             login_user(req,user)
