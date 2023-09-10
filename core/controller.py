@@ -45,6 +45,7 @@ def signup(req):
                 "message": "تم التسجيل بنجاح",
                 "fullname": user.fullname,
                 "email": user.email,
+                "picture": user.picture,
                 "user_id": user.id
             })
         else:
@@ -74,6 +75,7 @@ def login(req):
                 "message": "تم تسجيل الدخول بنجاح",
                 "fullname": user.fullname,
                 "email": user.email,
+                "picture": user.picture,
                 "user_id": user.id
             }
             )
@@ -94,8 +96,9 @@ def google_login(req):
         json_data = json.loads(req.body)
         email = json_data.get("email")
         fullname = json_data.get("fullname")
+        picture = json_data.get("picture")
         user_model = get_user_model()
-        user = user_model(email=email, fullname=fullname)
+        user = user_model(email=email, fullname=fullname,picture=picture)
         try:
             user.save()
         except IntegrityError:
@@ -106,6 +109,7 @@ def google_login(req):
             "message": "تم تسجيل الدخول بنجاح",
             "fullname": user.fullname,
             "email": user.email,
+            "picture": user.picture,
             "user_id": user.id
         })
 
