@@ -131,3 +131,17 @@ def logout(req):
             "status": False,
             "message": "wrong method"
         }, status=405)
+
+
+def verify_login(req):
+    if req.user.is_anonymous:
+        logout_user(req)
+        return JsonResponse({
+            "status": False,
+            "message": "user is logged out"
+        }, status=401)
+    else:
+        return JsonResponse({
+            "status": True,
+            "message": "user is logged in"
+        }, status=200)

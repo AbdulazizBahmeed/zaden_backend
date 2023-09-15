@@ -2,7 +2,8 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 urlpatterns = [
-    path('auth/',include('core.urls'))
+    path('auth/',include('core.urls')),
+    path('forecast/',include('forecasting.urls')),
 ]
 
 def error_404(request, exception):
