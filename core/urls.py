@@ -7,4 +7,5 @@ urlpatterns = [
     path('login/',controller.login),
     path('google-login/',controller.google_login),
     path('logout/',controller.logout),
+    path('verify-login/',controller.verify_login),
 ]

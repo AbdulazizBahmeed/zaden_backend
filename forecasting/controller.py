@@ -16,8 +16,8 @@ def forecast(req):
                             index=data_frame.columns[2],
                             aggfunc='sum',
                             fill_value=0)
-        # print(df)
-        # #here we test the model
+        print(df)
+        #here we test the model
         # x_len = int(len(df.values[0]) / 3)  #with the previous half period we predict the future
         # X_train, Y_train, X_test, Y_test = datasets(df, x_len=x_len, y_len=future_period,test_loops=1)
         
