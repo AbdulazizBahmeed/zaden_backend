@@ -166,11 +166,11 @@ USE_TZ = True
 
 AUTH_USER_MODEL = "core.User"
 
-CORS_ORIGIN_ALLOW_ALL = False
-CORS_ALLOWED_ORIGINS = [
-    'https://zaden.tech',
-    'http://localhost:3000',
-]
+SESSION_COOKIE_DOMAIN="backend.zaden.tech"
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+
+CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
@@ -183,6 +183,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'access-control-allow-origin'
 ]
 
 # Static files (CSS, JavaScript, Images)

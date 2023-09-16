@@ -124,6 +124,7 @@ def logout(req):
     if req.method == "GET":
         logout_user(req)
         return JsonResponse({
+            "status": True,
             "message": "تم تسجيل الخروج بنجاح"
         })
     else:
