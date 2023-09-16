@@ -31,7 +31,7 @@ LOGGING = {
             "()": "django.utils.log.ServerFormatter",
             "format": "[{server_time}] {message}",
             "style": "{",
-        },"file_formatter": {
+        }, "file_formatter": {
             "()": "django.utils.log.ServerFormatter",
             "format": '''------------------------------------------------------------------
 [{server_time}]: {message}''',
@@ -70,7 +70,7 @@ LOGGING = {
     },
 }
 
-ALLOWED_HOSTS = ['backend.zaden.tech','localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['backend.zaden.tech', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -125,8 +125,8 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'zaden'),
         'USER': os.environ.get('DB_USER', 'root'),
         'PASSWORD': os.environ.get('DB_PASS', '123456'),
-        'HOST':os.environ.get('DB_HOST', 'localhost'),
-        'PORT':'3306',
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': '3306',
     }
 }
 
@@ -166,7 +166,24 @@ USE_TZ = True
 
 AUTH_USER_MODEL = "core.User"
 
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOWED_ORIGINS = [
+    'https://zaden.tech',
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
