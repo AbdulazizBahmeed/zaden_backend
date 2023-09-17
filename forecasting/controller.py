@@ -39,7 +39,7 @@ def forecast(req):
 
         return JsonResponse({
             "status": True,
-            "message": "user is logged in",
+            "message": "forecasted the excel file successfully",
             "data": {
                 "history": format_data(series_data_frame),
                 "future": format_data(future_series),
