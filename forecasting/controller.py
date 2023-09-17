@@ -1,65 +1,81 @@
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 import numpy as np
-
-
+from sklearn.linear_model import LinearRegression
 
 def forecast(req):
     if req.method == "POST":
+        #preparing the excel file
         excel_file = req.FILES["excel_file"]
         data_frame = pd.read_excel(excel_file)
-        df_out = data_frame.set_index(data_frame.columns[0],drop=False)[data_frame.columns[1]].resample('D')
-        print(df_out)
-        df = pd.pivot_table(data = data_frame,
-                            columns=data_frame.columns[0],
-                            values=data_frame.columns[1],
-                            index=data_frame.columns[2],
-                            aggfunc='sum',
-                            fill_value=0)
-        print(df)
-        #here we test the model
-        # x_len = int(len(df.values[0]) / 3)  #with the previous half period we predict the future
-        # X_train, Y_train, X_test, Y_test = datasets(df, x_len=x_len, y_len=future_period,test_loops=1)
+        data_frame[data_frame.columns[0]] = pd.to_datetime(data_frame[data_frame.columns[0]])
+        series_data_frame = data_frame.set_index(data_frame.columns[0])[data_frame.columns[1]].resample('D').sum()
+        X_train, Y_train, X_test, Y_test = datasets(series_data_frame)
+
+        #creting the method them feed the excel file data
+        reg_model = LinearRegression()
+        reg_model = reg_model.fit(X_train, Y_train)
+
+        #predcitng with trained model
+        Y_test_pred = reg_model.predict(X_test)
+
+        #calculating the accuracy 
+        accuracy = ((abs(np.sum(Y_test)) - abs(np.sum((Y_test -
+                    Y_test_pred)))) / abs(np.sum(Y_test))) * 100
         
-        # model.fit(X_train,Y_train)
-        # Y_train_pred = model.predict(X_train)
-        # Y_test_pred = model.predict(X_test)
-        # error = kpi_ML(Y_train, Y_train_pred, Y_test, Y_test_pred, name = model, train= False)["Bias"]["Test"]
-        # print(Y_test)
-        # print(Y_test_pred)
-        # #here we prepare the input for future focracsting
-        # X_test = df.iloc[: , -x_len:].values
-        # future_forcast = model.predict(X_test)
+        #genreating the future prediction
+        future_pred = reg_model.predict([list(series_data_frame.iloc[len(series_data_frame)-30:])])
+        X_future = list(series_data_frame.iloc[len(series_data_frame)-30:])
+        X_future.append(future_pred[0])
+        for i in range(29):
+            future_pred = reg_model.predict([list(X_future[len(X_future)-30:])])
+            X_future.append(future_pred[0])
 
-        # resutl = {
-        #     "future": future_forcast,
-        #     "error":error
-        # }
-        return HttpResponse(df_out)
-    
+        #formating the history data and future data in pandas series format
+        date = series_data_frame.index[len(series_data_frame)-31]
+        date = pd.date_range(date, periods=61, freq='D', inclusive="neither")
+        result_data = Y_test_pred.tolist() + X_future[30:]
+        future_series = pd.Series(result_data, index=date)
 
-def datasets(df, x_len=12, y_len=1, test_loops=12):
-    D = df.values
-    rows, periods = D.shape
-    loops = periods + 1 - x_len - y_len
-    train = []
+        return JsonResponse({
+            "status": True,
+            "message": "user is logged in",
+            "data": {
+                "history": format_data(series_data_frame),
+                "future": format_data(future_series),
+                "accuracy": accuracy
+            }
+        }, status=200)
+    else:
+      return JsonResponse({
+          "status": False,
+          "message": "wrong method"
+      }, status=405)
 
-  # Training set creation
-    for col in range(loops):
-        train.append(D[:,col:col+x_len+y_len])
-    train = np.vstack(train)
-    X_train, Y_train = np.split(train,[-y_len],axis=1)
 
-  # Test set creation
-    if test_loops > 0:
-        X_train, X_test = np.split(X_train,[-rows*test_loops],axis=0)
-        Y_train, Y_test = np.split(Y_train,[-rows*test_loops],axis=0)
-    else: # No test set: X_test is used to generate the future forecast
-        X_test = D[:,-x_len:]
-        Y_test = np.full((X_test.shape[0],y_len),np.nan) 
+#splitting the data set to training and testing
+def datasets(df, x_len=30, test_loops=30):
+    X_train = []
+    Y_train = []
+    # creating the training set
+    for index in range(x_len, len(df) - test_loops):
+        X_train.append(list(df.iloc[index - x_len:index].values))
+        Y_train.append(df.iloc[index])
 
-  # Formatting required for scikit-learn
-    if y_len == 1:
-        Y_train = Y_train.ravel()
-        Y_test = Y_test.ravel()
+    X_test = []
+    Y_test = []
+    # creating the testing set
+    for index in range(len(df) - test_loops, len(df)):
+        X_test.append(list(df.iloc[index - x_len:index].values))
+        Y_test.append(df.iloc[index])
+
     return X_train, Y_train, X_test, Y_test
+
+# format the pandas series object to json format
+def format_data(series):
+    labels = series.index.astype(str).to_list()
+    values = series.values.astype(str)
+    result_array = []
+    for label, value in zip(labels, values):
+        result_array.append({"x": label, "y": value})
+    return result_array
