@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 # from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -75,14 +76,15 @@ ALLOWED_HOSTS = ['backend.zaden.tech', 'localhost', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'core',
+    'forecasting',
 ]
 
 MIDDLEWARE = [
@@ -162,13 +164,13 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 AUTH_USER_MODEL = "core.User"
 
-SESSION_COOKIE_DOMAIN="backend.zaden.tech"
+SESSION_COOKIE_DOMAIN= os.environ.get('SERVER_DOMAIN', None)
 SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = os.environ.get('DEBUG', 'True') == 'False'
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
@@ -190,6 +192,8 @@ CORS_ALLOW_HEADERS = [
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_ROOT = BASE_DIR.joinpath("media").__str__()
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
