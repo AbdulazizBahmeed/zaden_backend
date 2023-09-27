@@ -10,5 +10,5 @@ class File(models.Model):
         return {
             "id": self.id,
             "name": self.file.name,
-            "date": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            "date": self.created_at.strftime("%Y-%m-%d %I:%M %p")
         }
