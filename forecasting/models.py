@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils.timezone import localtime
 
 class File(models.Model):
     file = models.FileField(upload_to="")
@@ -10,5 +11,5 @@ class File(models.Model):
         return {
             "id": self.id,
             "name": self.file.name,
-            "date": self.created_at.strftime("%Y-%m-%d %I:%M %p")
+            "date": localtime(self.created_at).strftime("%Y-%m-%d %I:%M %p")
         }
