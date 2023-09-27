@@ -3,5 +3,5 @@ from django.urls import path
 from . import controller
 
 urlpatterns = [
-    path('',controller.forecast),
+    path('upload-file/',controller.upload),
 ]
