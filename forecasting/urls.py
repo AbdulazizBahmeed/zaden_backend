@@ -4,4 +4,5 @@ from . import controller
 
 urlpatterns = [
     path('upload-file/',controller.upload),
+    path('list-files/',controller.list_files),
 ]

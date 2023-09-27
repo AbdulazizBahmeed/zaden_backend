@@ -108,3 +108,11 @@ def upload(req):
             "status": False,
             "message": "wrong method"
         }, status=405)
+
+def list_files(req):
+    files_list = [file.as_dict() for file in req.user.files.all()]
+    return JsonResponse({
+        "status": True,
+        "message": "تم جلب البيانات بنجاح",
+        "data":files_list
+    })
