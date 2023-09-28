@@ -2,15 +2,21 @@ from django.http import HttpResponse, JsonResponse
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from django.core.files.storage import default_storage
 from .models import File
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 
 
-def forecast(req):
+def forecast(req, file_id):
     if req.method == "POST":
-        # preparing the excel file
-        excel_file = req.FILES["excel_file"]
-        data_frame = pd.read_excel(excel_file)
+        try:
+            file = req.user.files.get(id=file_id)
+        except ObjectDoesNotExist:
+            return JsonResponse({
+                "status": False,
+                "message": "لايوجد ملف  بهذا المعرف"
+            }, status=404)
+        data_frame = pd.read_excel(file.file)
         data_frame[data_frame.columns[0]] = pd.to_datetime(
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
@@ -82,6 +88,7 @@ def datasets(df, x_len=30, test_loops=30):
 
 
 def format_data(series):
+    series =series.resample("W").sum()
     labels = series.index.astype(str).to_list()
     values = series.values.astype(str)
     result_array = []
@@ -89,10 +96,15 @@ def format_data(series):
         result_array.append({"x": label, "y": value})
     return result_array
 
+
 def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
         if uploaded_file is not None:
+            file_name, file_extension = uploaded_file.name.split('.')
+            date_now = timezone
+            # file_name = file_name + 
+            print(file_name, file_extension)
             File.objects.create(file=uploaded_file, owner=req.user)
             return JsonResponse({
                 "status": True,
@@ -100,19 +112,20 @@ def upload(req):
             })
         else:
             return JsonResponse({
-            "status": False,
-            "message": "لم تقم بارفاق ملف"
-        }, status=400)
+                "status": False,
+                "message": "لم تقم بارفاق ملف"
+            }, status=400)
     else:
         return JsonResponse({
             "status": False,
             "message": "wrong method"
         }, status=405)
 
+
 def list_files(req):
     files_list = [file.as_dict() for file in req.user.files.all()]
     return JsonResponse({
         "status": True,
         "message": "تم جلب البيانات بنجاح",
-        "data":files_list
+        "data": files_list
     })
