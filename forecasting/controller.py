@@ -7,6 +7,37 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 
+
+
+def upload(req):
+    if req.method == "POST":
+        uploaded_file = req.FILES.get('excel_file')
+        if uploaded_file is not None:
+            File.objects.create(file_name=uploaded_file.name,file=uploaded_file, owner=req.user)
+            return JsonResponse({
+                "status": True,
+                "message": "تم رفع الملف بنجاح",
+            })
+        else:
+            return JsonResponse({
+                "status": False,
+                "message": "لم تقم بارفاق ملف"
+            }, status=400)
+    else:
+        return JsonResponse({
+            "status": False,
+            "message": "wrong method"
+        }, status=405)
+
+
+def list_files(req):
+    files_list = [file.as_dict() for file in req.user.files.all()]
+    return JsonResponse({
+        "status": True,
+        "message": "تم جلب البيانات بنجاح",
+        "data": files_list
+    })
+
 def forecast(req, file_id):
     if req.method == "POST":
         try:
@@ -95,37 +126,3 @@ def format_data(series):
     for label, value in zip(labels, values):
         result_array.append({"x": label, "y": value})
     return result_array
-
-
-def upload(req):
-    if req.method == "POST":
-        uploaded_file = req.FILES.get('excel_file')
-        if uploaded_file is not None:
-            file_name, file_extension = uploaded_file.name.split('.')
-            date_now = timezone
-            # file_name = file_name + 
-            print(file_name, file_extension)
-            File.objects.create(file=uploaded_file, owner=req.user)
-            return JsonResponse({
-                "status": True,
-                "message": "تم رفع الملف بنجاح",
-            })
-        else:
-            return JsonResponse({
-                "status": False,
-                "message": "لم تقم بارفاق ملف"
-            }, status=400)
-    else:
-        return JsonResponse({
-            "status": False,
-            "message": "wrong method"
-        }, status=405)
-
-
-def list_files(req):
-    files_list = [file.as_dict() for file in req.user.files.all()]
-    return JsonResponse({
-        "status": True,
-        "message": "تم جلب البيانات بنجاح",
-        "data": files_list
-    })
