@@ -4,7 +4,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from .models import File
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils import timezone
+import requests
+import uuid
 
 
 
@@ -12,12 +13,25 @@ from django.utils import timezone
 def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
+        binary_file = {"file": uploaded_file.read()}
         if uploaded_file is not None:
-            File.objects.create(file_name=uploaded_file.name,file=uploaded_file, owner=req.user)
-            return JsonResponse({
-                "status": True,
-                "message": "تم رفع الملف بنجاح",
-            })
+            identifier = uuid.uuid4()
+            headers = {
+            'Host': 'kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com',
+                }
+            url = f"https://kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com/upload-api/zaden-bucket/{identifier}.xlsx"
+            response = requests.put(url, files=binary_file, headers=headers)
+            if response.status_code == 200:
+                File.objects.create(file_name=uploaded_file.name,uuid=identifier, owner=req.user)
+                return JsonResponse({
+                    "status": True,
+                    "message": "تم رفع الملف بنجاح",
+                })
+            else:
+                return JsonResponse({
+                "status": False,
+                "message": "حصلت مشكلة أثناء عملية الرفع الرجاء المحاولة لاحقا"
+            }, status=500)
         else:
             return JsonResponse({
                 "status": False,
@@ -47,7 +61,7 @@ def forecast(req, file_id):
                 "status": False,
                 "message": "لايوجد ملف  بهذا المعرف"
             }, status=404)
-        data_frame = pd.read_excel(file.file)
+        data_frame = pd.read_excel(file.file(), engine='openpyxl')
         data_frame[data_frame.columns[0]] = pd.to_datetime(
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
