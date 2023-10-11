@@ -7,31 +7,38 @@ from django.core.exceptions import ObjectDoesNotExist
 import requests
 import uuid
 
+# here we define the AI algortithms
+import xgboost as xgb
+XGB_regressor = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3,
+                                 learning_rate=0.1, max_depth=100, alpha=10, n_estimators=140)
 
+# here is the array of all the AI algortithms
+algorithms = [LinearRegression(), XGB_regressor]
 
 
 def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
-        binary_file = {"file": uploaded_file.read()}
         if uploaded_file is not None:
+            binary_file = {"file": uploaded_file.read()}
             identifier = uuid.uuid4()
             headers = {
-            'Host': 'kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com',
-                }
+                'Host': 'kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com',
+            }
             url = f"https://kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com/upload-api/zaden-bucket/{identifier}.xlsx"
             response = requests.put(url, files=binary_file, headers=headers)
             if response.status_code == 200:
-                File.objects.create(file_name=uploaded_file.name,uuid=identifier, owner=req.user)
+                File.objects.create(
+                    file_name=uploaded_file.name, uuid=identifier, owner=req.user)
                 return JsonResponse({
                     "status": True,
                     "message": "تم رفع الملف بنجاح",
                 })
             else:
                 return JsonResponse({
-                "status": False,
-                "message": "حصلت مشكلة أثناء عملية الرفع الرجاء المحاولة لاحقا"
-            }, status=500)
+                    "status": False,
+                    "message": "حصلت مشكلة أثناء عملية الرفع الرجاء المحاولة لاحقا"
+                }, status=500)
         else:
             return JsonResponse({
                 "status": False,
@@ -52,6 +59,7 @@ def list_files(req):
         "data": files_list
     })
 
+
 def forecast(req, file_id):
     if req.method == "POST":
         try:
@@ -66,26 +74,16 @@ def forecast(req, file_id):
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
             data_frame.columns[1]].resample('D').sum()
-        X_train, Y_train, X_test, Y_test = datasets(series_data_frame)
 
-        # creting the method them feed the excel file data
-        reg_model = LinearRegression()
-        reg_model = reg_model.fit(X_train, Y_train)
-
-        # predcitng with trained model
-        Y_test_pred = reg_model.predict(X_test)
-
-        # calculating the accuracy
-        accuracy = ((abs(np.sum(Y_test)) - abs(np.sum((Y_test -
-                    Y_test_pred)))) / abs(np.sum(Y_test))) * 100
+        best_model, accuracy, Y_test_pred = best_model_analyzer(series_data_frame)
 
         # genreating the future prediction
-        future_pred = reg_model.predict(
+        future_pred = best_model.predict(
             [list(series_data_frame.iloc[len(series_data_frame)-30:])])
         X_future = list(series_data_frame.iloc[len(series_data_frame)-30:])
         X_future.append(future_pred[0])
         for i in range(29):
-            future_pred = reg_model.predict(
+            future_pred = best_model.predict(
                 [list(X_future[len(X_future)-30:])])
             X_future.append(future_pred[0])
 
@@ -111,8 +109,28 @@ def forecast(req, file_id):
         }, status=405)
 
 
+def best_model_analyzer(series_df):
+    X_train, Y_train, X_test, Y_test = dataset(series_df)
+
+    best_accuracy = 0
+    best_model = None
+    for algorithm in algorithms:
+
+        #train the model then predict
+        trained_model = algorithm.fit(X_train, Y_train)
+        Y_test_pred = trained_model.predict(X_test)
+        # calculating the accuracy
+        current_accuracy = ((abs(np.sum(Y_test)) - abs(np.sum((Y_test - Y_test_pred)))) / abs(np.sum(Y_test))) * 100
+        print(current_accuracy)
+        if current_accuracy > best_accuracy:
+            best_accuracy = current_accuracy
+            best_model = trained_model
+
+    return best_model, best_accuracy, Y_test_pred
+
+
 # splitting the data set to training and testing
-def datasets(df, x_len=30, test_loops=30):
+def dataset(df, x_len=30, test_loops=30):
     X_train = []
     Y_train = []
     # creating the training set
@@ -129,11 +147,10 @@ def datasets(df, x_len=30, test_loops=30):
 
     return X_train, Y_train, X_test, Y_test
 
+
 # format the pandas series object to json format
-
-
 def format_data(series):
-    series =series.resample("W").sum()
+    series = series.resample("W").sum()
     labels = series.index.astype(str).to_list()
     values = series.values.astype(str)
     result_array = []
