@@ -153,7 +153,7 @@ def dataset(df, x_len=30, test_loops=30):
 
 # format the pandas series object to json format
 def format_data(series, future_period):
-    series = series.resample(str(future_period) + "D").sum()
+    series = series.resample("W").sum()
     labels = series.index.astype(str).to_list()
     values = series.values.astype(str)
     result_array = []
