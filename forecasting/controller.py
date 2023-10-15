@@ -1,3 +1,4 @@
+import math
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 import numpy as np
@@ -9,7 +10,7 @@ import uuid
 
 # here we define the AI algortithms
 import xgboost as xgb
-XGB_regressor = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3,
+XGB_regressor = xgb.XGBRegressor(objective='reg:squarederror', colsample_bytree=0.3,
                                  learning_rate=0.1, max_depth=100, alpha=10, n_estimators=140)
 
 # here is the array of all the AI algortithms
@@ -62,6 +63,8 @@ def list_files(req):
 
 def forecast(req, file_id):
     if req.method == "POST":
+        period = req.GET.get('period')
+        future_period = int(period) if period is not None else 30
         try:
             file = req.user.files.get(id=file_id)
         except ObjectDoesNotExist:
@@ -75,30 +78,30 @@ def forecast(req, file_id):
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
             data_frame.columns[1]].resample('D').sum()
 
-        best_model, accuracy, Y_test_pred = best_model_analyzer(series_data_frame)
+        x_len = math.floor(len(series_data_frame) / 2)
+        best_model, accuracy, Y_test_pred = best_model_analyzer(series_data_frame, x_len,future_period)
 
         # genreating the future prediction
-        future_pred = best_model.predict(
-            [list(series_data_frame.iloc[len(series_data_frame)-30:])])
-        X_future = list(series_data_frame.iloc[len(series_data_frame)-30:])
+        future_pred = best_model.predict([list(series_data_frame.iloc[len(series_data_frame)-x_len:])])
+        X_future = list(series_data_frame.iloc[len(series_data_frame)-x_len:])
         X_future.append(future_pred[0])
-        for i in range(29):
-            future_pred = best_model.predict(
-                [list(X_future[len(X_future)-30:])])
+
+        for i in range(future_period - 1):
+            future_pred = best_model.predict([list(X_future[len(X_future)-x_len:])])
             X_future.append(future_pred[0])
 
         # formating the history data and future data in pandas series format
-        date = series_data_frame.index[len(series_data_frame)-31]
-        date = pd.date_range(date, periods=61, freq='D', inclusive="neither")
-        result_data = Y_test_pred.tolist() + X_future[30:]
+        date = series_data_frame.index[len(series_data_frame)- (future_period + 1)]
+        date = pd.date_range(date, periods=(future_period * 2) + 1, freq='D', inclusive="neither")
+        result_data = Y_test_pred.tolist() + X_future[x_len:]
         future_series = pd.Series(result_data, index=date)
 
         return JsonResponse({
             "status": True,
             "message": "forecasted the excel file successfully",
             "data": {
-                "history": format_data(series_data_frame),
-                "future": format_data(future_series),
+                "history": format_data(series_data_frame, future_period),
+                "future": format_data(future_series, future_period),
                 "accuracy": accuracy
             }
         }, status=200)
@@ -109,18 +112,18 @@ def forecast(req, file_id):
         }, status=405)
 
 
-def best_model_analyzer(series_df):
-    X_train, Y_train, X_test, Y_test = dataset(series_df)
+def best_model_analyzer(series_df, x_len, future_period):
+    X_train, Y_train, X_test, Y_test = dataset(series_df, x_len=x_len, test_loops=future_period)
 
     best_accuracy = 0
     best_model = None
-    for algorithm in algorithms:
 
+    for algorithm in algorithms:
         #train the model then predict
         trained_model = algorithm.fit(X_train, Y_train)
         Y_test_pred = trained_model.predict(X_test)
         # calculating the accuracy
-        current_accuracy = ((abs(np.sum(Y_test)) - abs(np.sum((Y_test - Y_test_pred)))) / abs(np.sum(Y_test))) * 100
+        current_accuracy = (abs(np.sum(Y_test) - abs(np.sum((Y_test - Y_test_pred)))) / np.sum(Y_test)) * 100
         print(current_accuracy)
         if current_accuracy > best_accuracy:
             best_accuracy = current_accuracy
@@ -149,8 +152,8 @@ def dataset(df, x_len=30, test_loops=30):
 
 
 # format the pandas series object to json format
-def format_data(series):
-    series = series.resample("W").sum()
+def format_data(series, future_period):
+    series = series.resample(str(future_period) + "D").sum()
     labels = series.index.astype(str).to_list()
     values = series.values.astype(str)
     result_array = []
