@@ -56,6 +56,8 @@ def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
         if uploaded_file is not None:
+            if not is_valid(uploaded_file):
+               return None
             binary_file = {"file": uploaded_file.read()}
             identifier = uuid.uuid4()
             headers = {
@@ -107,8 +109,8 @@ def forecast(req, file_id):
                 "status": False,
                 "message": "لايوجد ملف  بهذا المعرف"
             }, status=404)
-        # data_frame = pd.read_excel(file.file(), engine='openpyxl')
-        data_frame = pd.read_excel("C:\\Users\\azooz\\Downloads\\pizza.xlsx")
+        data_frame = pd.read_excel(file.file(), engine='openpyxl')
+        # data_frame = pd.read_excel("C:\\Users\\azooz\\Downloads\\pizza.xlsx")
         data_frame[data_frame.columns[0]] = pd.to_datetime(
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
