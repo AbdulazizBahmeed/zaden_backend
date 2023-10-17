@@ -56,8 +56,8 @@ def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
         if uploaded_file is not None:
-            if not is_valid(uploaded_file):
-               return None
+            # if not is_valid(uploaded_file):
+            #    return None
             binary_file = {"file": uploaded_file.read()}
             identifier = uuid.uuid4()
             headers = {
@@ -88,6 +88,9 @@ def upload(req):
             "message": "wrong method"
         }, status=405)
 
+
+# def is_valid(file):
+#     pass
 
 def list_files(req):
     files_list = [file.as_dict() for file in req.user.files.all()]
