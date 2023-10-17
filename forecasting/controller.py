@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 # here we define the AI algortithms
 import xgboost as xgb
 XGB_regressor = xgb.XGBRegressor(objective='reg:squarederror', colsample_bytree=0.3,
-                                 learning_rate=0.1, max_depth=100, alpha=10, n_estimators=140)
+                                 learning_rate=0.1, max_depth=50, alpha=10, n_estimators=140)
 
 #decision tree model
 from sklearn.tree import DecisionTreeRegressor
@@ -24,7 +24,7 @@ param_dist = {'max_depth': max_depth,
 'min_samples_split': min_samples_split,
  'min_samples_leaf': min_samples_leaf}
 tree = DecisionTreeRegressor()
-decision_tree = RandomizedSearchCV(tree, param_dist, n_jobs=-1, cv=5,verbose=1, n_iter=10, scoring='neg_mean_absolute_error')
+decision_tree = RandomizedSearchCV(tree, param_dist, n_jobs=-1, cv=5,verbose=1, n_iter=5, scoring='neg_mean_absolute_error')
 
 #random forest model
 from sklearn.ensemble import RandomForestRegressor
@@ -46,7 +46,7 @@ beta_1 = [0.85,0.875,0.9,0.95,0.975,0.99,0.995]
 beta_2 = [0.99,0.995,0.999,0.9995,0.9999]
 param_dist = {'hidden_layer_sizes':hidden_layer_sizes, 'alpha':alpha,'learning_rate_init':learning_rate_init, 'beta_1':beta_1, 'beta_2':beta_2}
 NN = MLPRegressor(**param_fixed)
-neural_network = RandomizedSearchCV(NN, param_dist, cv=10, verbose=1, n_jobs=-1, n_iter=10, scoring='neg_mean_absolute_error')
+neural_network = RandomizedSearchCV(NN, param_dist, cv=5, verbose=1, n_jobs=-1, n_iter=5, scoring='neg_mean_absolute_error')
 
 # here is the array of all the AI algortithms
 algorithms = [LinearRegression(), XGB_regressor,decision_tree, random_forest, neural_network]
