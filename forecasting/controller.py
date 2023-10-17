@@ -2,19 +2,54 @@ import math
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
 from .models import File
 from django.core.exceptions import ObjectDoesNotExist
 import requests
 import uuid
+
+from sklearn.linear_model import LinearRegression
 
 # here we define the AI algortithms
 import xgboost as xgb
 XGB_regressor = xgb.XGBRegressor(objective='reg:squarederror', colsample_bytree=0.3,
                                  learning_rate=0.1, max_depth=100, alpha=10, n_estimators=140)
 
+#decision tree model
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import RandomizedSearchCV
+max_depth = list(range(5,11)) + [None]
+min_samples_split = range(5,20)
+min_samples_leaf = range(2,20)
+param_dist = {'max_depth': max_depth,
+'min_samples_split': min_samples_split,
+ 'min_samples_leaf': min_samples_leaf}
+tree = DecisionTreeRegressor()
+decision_tree = RandomizedSearchCV(tree, param_dist, n_jobs=-1, cv=5,verbose=1, n_iter=10, scoring='neg_mean_absolute_error')
+
+#random forest model
+from sklearn.ensemble import RandomForestRegressor
+random_forest = RandomForestRegressor(bootstrap=True, max_samples=0.95,max_features=5, min_samples_leaf=18, max_depth=7)
+
+#machine learning algorithm
+from sklearn.neural_network import MLPRegressor
+activation = 'relu'
+solver = 'adam'
+early_stopping = True
+n_iter_no_change = 50
+validation_fraction = 0.1
+tol = 0.0001
+param_fixed = {'activation':activation, 'solver':solver,'early_stopping':early_stopping, 'n_iter_no_change':n_iter_no_change, 'validation_fraction':validation_fraction,'tol':tol}
+hidden_layer_sizes = [[neuron]*hidden_layer for neuron in range(10,60,10) for hidden_layer in range(2,7)]
+alpha = [5,1,0.5,0.1,0.05,0.01,0.001]
+learning_rate_init = [0.05,0.01,0.005,0.001,0.0005]
+beta_1 = [0.85,0.875,0.9,0.95,0.975,0.99,0.995]
+beta_2 = [0.99,0.995,0.999,0.9995,0.9999]
+param_dist = {'hidden_layer_sizes':hidden_layer_sizes, 'alpha':alpha,'learning_rate_init':learning_rate_init, 'beta_1':beta_1, 'beta_2':beta_2}
+NN = MLPRegressor(**param_fixed)
+neural_network = RandomizedSearchCV(NN, param_dist, cv=10, verbose=1, n_jobs=-1, n_iter=10, scoring='neg_mean_absolute_error')
+
 # here is the array of all the AI algortithms
-algorithms = [LinearRegression(), XGB_regressor]
+algorithms = [LinearRegression(), XGB_regressor,decision_tree, random_forest, neural_network]
 
 
 def upload(req):
@@ -72,7 +107,8 @@ def forecast(req, file_id):
                 "status": False,
                 "message": "لايوجد ملف  بهذا المعرف"
             }, status=404)
-        data_frame = pd.read_excel(file.file(), engine='openpyxl')
+        # data_frame = pd.read_excel(file.file(), engine='openpyxl')
+        data_frame = pd.read_excel("C:\\Users\\azooz\\Downloads\\pizza.xlsx")
         data_frame[data_frame.columns[0]] = pd.to_datetime(
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
@@ -102,7 +138,8 @@ def forecast(req, file_id):
             "data": {
                 "history": format_data(series_data_frame, future_period),
                 "future": format_data(future_series, future_period),
-                "accuracy": accuracy
+                "accuracy": accuracy,
+                "result": np.sum(X_future)
             }
         }, status=200)
     else:
