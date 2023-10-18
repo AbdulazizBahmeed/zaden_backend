@@ -88,7 +88,7 @@ def upload(req):
 
 
 def list_files(req):
-    files_list = [file.as_dict() for file in req.user.files.all()]
+    files_list = [file.as_dict() for file in req.user.files.all().order_by('-created_at')]
     return JsonResponse({
         "status": True,
         "message": "تم جلب البيانات بنجاح",
