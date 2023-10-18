@@ -56,6 +56,9 @@ def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
         if uploaded_file is not None:
+            file_error = is_valid_excel(uploaded_file)
+            if file_error:
+                return file_error
             binary_file = {"file": uploaded_file.read()}
             identifier = uuid.uuid4()
             headers = {
@@ -86,6 +89,42 @@ def upload(req):
             "message": "wrong method"
         }, status=405)
 
+def is_valid_excel(file):
+    try:
+        data_frame = pd.read_excel(file, engine='openpyxl')
+    except:
+        return JsonResponse({
+            "status": False,
+            "message": "الرجاء رفع ملف اكسل صحيح"
+        }, status=400)
+
+    try:
+        data_frame[data_frame.columns[0]] = pd.to_datetime(
+            data_frame[data_frame.columns[0]])
+    except:
+        return JsonResponse({
+            "status": False,
+            "message": "يجب ان يكون نوع اول عامود تاريخ ويمثل تاريخ المبيعات لكل صف"
+        }, status=400)
+
+    try:
+        data_frame[data_frame.columns[1]] = pd.to_numeric(
+            data_frame[data_frame.columns[1]])
+    except:
+        return JsonResponse({
+            "status": False,
+            "message": "يجب ان يكون نوع ثاني عامود عدد رقمي يمثل عدد المبيعات لكل صف"
+        }, status=400)
+
+    try:
+        data_frame.set_index(data_frame.columns[0])[
+            data_frame.columns[1]].resample('D').sum()
+    except Exception:
+        return JsonResponse({
+            "status": False,
+            "message": "حدث خطأ اثناء محاولة قراءة الملف الرجاء التاكد من صحة البيانات الموجودة في الملف حسب التنسيق المذكور"
+        }, status=400)
+    return None
 
 def list_files(req):
     files_list = [file.as_dict() for file in req.user.files.all().order_by('-created_at')]
