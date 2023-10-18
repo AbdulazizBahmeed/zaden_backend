@@ -107,30 +107,24 @@ def forecast(req, file_id):
                 "message": "لايوجد ملف  بهذا المعرف"
             }, status=404)
         data_frame = pd.read_excel(file.file(), engine='openpyxl')
-        # data_frame = pd.read_excel("C:\\Users\\azooz\\Downloads\\pizza.xlsx")
+        # data_frame = pd.read_excel("C:\\Users\\azooz\\Downloads\\sales.xlsx")
         data_frame[data_frame.columns[0]] = pd.to_datetime(
             data_frame[data_frame.columns[0]])
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
             data_frame.columns[1]].resample('D').sum()
 
         x_len = math.floor(len(series_data_frame) / 2)
-        best_model, accuracy, Y_test_pred = best_model_analyzer(series_data_frame, x_len,future_period)
+        best_model, accuracy, Y_test_pred, X_future = best_model_analyzer(series_data_frame, x_len,future_period)
 
         # genreating the future prediction
-        future_pred = best_model.predict([list(series_data_frame.iloc[len(series_data_frame)-x_len:])])
-        X_future = list(series_data_frame.iloc[len(series_data_frame)-x_len:])
-        X_future.append(future_pred[0])
-
-        for i in range(future_period - 1):
-            future_pred = best_model.predict([list(X_future[len(X_future)-x_len:])])
-            X_future.append(future_pred[0])
+        Y_future = best_model.predict(X_future)
 
         # formating the history data and future data in pandas series format
         date = series_data_frame.index[len(series_data_frame)- (future_period + 1)]
         date = pd.date_range(date, periods=(future_period * 2) + 1, freq='D', inclusive="neither")
-        result_data = Y_test_pred.tolist() + X_future[x_len:]
+        result_data = np.concatenate([Y_test_pred[0], Y_future[0]])
         future_series = pd.Series(result_data, index=date)
-
+        print(int(np.sum(Y_future[0])))
         return JsonResponse({
             "status": True,
             "message": "forecasted the excel file successfully",
@@ -138,7 +132,7 @@ def forecast(req, file_id):
                 "history": format_data(series_data_frame, future_period),
                 "future": format_data(future_series, future_period),
                 "accuracy": accuracy,
-                "result": np.sum(X_future)
+                "result": int(np.sum(Y_future[0]))
             }
         }, status=200)
     else:
@@ -149,8 +143,7 @@ def forecast(req, file_id):
 
 
 def best_model_analyzer(series_df, x_len, future_period):
-    X_train, Y_train, X_test, Y_test = dataset(series_df, x_len=x_len, test_loops=future_period)
-
+    X_train, Y_train, X_test, Y_test, X_future = dataset(series_df, x_len=x_len, y_len=future_period)
     best_accuracy = 0
     best_model = None
 
@@ -160,31 +153,36 @@ def best_model_analyzer(series_df, x_len, future_period):
         Y_test_pred = trained_model.predict(X_test)
         # calculating the accuracy
         current_accuracy = (abs(np.sum(Y_test) - abs(np.sum((Y_test - Y_test_pred)))) / np.sum(Y_test)) * 100
+        current_accuracy = (abs(np.sum(Y_test) - abs(np.sum((Y_test - Y_test_pred)))) / np.sum(Y_test)) * 100
         print(current_accuracy)
         if current_accuracy > best_accuracy:
             best_accuracy = current_accuracy
             best_model = trained_model
 
-    return best_model, best_accuracy, Y_test_pred
+    return best_model, best_accuracy, Y_test_pred, X_future
 
 
 # splitting the data set to training and testing
-def dataset(df, x_len=30, test_loops=30):
+def dataset(series_data_frame, x_len=30, y_len=30):
+    series_length = len(series_data_frame)
+    
     X_train = []
     Y_train = []
-    # creating the training set
-    for index in range(x_len, len(df) - test_loops):
-        X_train.append(list(df.iloc[index - x_len:index].values))
-        Y_train.append(df.iloc[index])
+    #creating the training set
+    for index in range(len(series_data_frame) - x_len - (y_len * 2) + 1):
+        X_train.append(list(series_data_frame.iloc[index:index + x_len].values))
+        Y_train.append(list(series_data_frame.iloc[index + x_len : index + x_len + y_len].values))
 
     X_test = []
     Y_test = []
-    # creating the testing set
-    for index in range(len(df) - test_loops, len(df)):
-        X_test.append(list(df.iloc[index - x_len:index].values))
-        Y_test.append(df.iloc[index])
+    # # creating the testing set
+    X_test.append(list(series_data_frame.iloc[series_length - x_len - y_len:series_length - y_len].values))
+    Y_test.append(list(series_data_frame.iloc[series_length - y_len: ].values))
+    
+    X_future = []
+    X_future.append(list(series_data_frame.iloc[series_length - x_len: ].values))
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, X_future
 
 
 # format the pandas series object to json format
