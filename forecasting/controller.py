@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 # here we define the AI algortithms
 import xgboost as xgb
 XGB_regressor = xgb.XGBRegressor(objective='reg:squarederror', colsample_bytree=0.3,
-                                 learning_rate=0.1, max_depth=50, alpha=10, n_estimators=140)
+                                 learning_rate=0.1, max_depth=100, alpha=10, n_estimators=140)
 
 #decision tree model
 from sklearn.tree import DecisionTreeRegressor
@@ -152,7 +152,7 @@ def forecast(req, file_id):
         series_data_frame = data_frame.set_index(data_frame.columns[0])[
             data_frame.columns[1]].resample('D').sum()
 
-        x_len = math.floor(len(series_data_frame) / 2)
+        x_len = math.floor(len(series_data_frame) / 4)
         best_model, accuracy, Y_test_pred, X_future = best_model_analyzer(series_data_frame, x_len,future_period)
 
         # genreating the future prediction
