@@ -56,9 +56,6 @@ def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
         if uploaded_file is not None:
-            file_error = is_valid_excel(uploaded_file)
-            if file_error:
-                return file_error
             binary_file = {"file": uploaded_file.read()}
             identifier = uuid.uuid4()
             headers = {
