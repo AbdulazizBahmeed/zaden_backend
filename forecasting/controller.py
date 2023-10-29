@@ -1,7 +1,10 @@
 import math
+import os
+from django.core.files.storage import default_storage
 from django.http import HttpResponse, JsonResponse
 import pandas as pd
 import numpy as np
+from zaden_backend import settings
 from .models import File
 from django.core.exceptions import ObjectDoesNotExist
 import requests
@@ -55,8 +58,19 @@ algorithms = [LinearRegression(), XGB_regressor,decision_tree, random_forest, ne
 def upload(req):
     if req.method == "POST":
         uploaded_file = req.FILES.get('excel_file')
+        path = default_storage.save(uploaded_file.name, uploaded_file)
+        file_path = os.path.join(settings.MEDIA_ROOT, path)
+
         if uploaded_file is not None:
-            binary_file = {"file": uploaded_file.read()}
+            error = is_valid_excel(file_path)
+            if error:
+                return error
+            
+            excel_file = open(file_path, 'rb') # opening a file
+            binary_file = {"file": excel_file.read()}
+            excel_file.close() # closing file object
+            default_storage.delete(path)
+
             identifier = uuid.uuid4()
             headers = {
                 'Host': 'kpnzs85sk8.execute-api.ap-northeast-2.amazonaws.com',
@@ -114,13 +128,20 @@ def is_valid_excel(file):
         }, status=400)
 
     try:
-        data_frame.set_index(data_frame.columns[0])[
+        series = data_frame.set_index(data_frame.columns[0])[
             data_frame.columns[1]].resample('D').sum()
     except Exception:
         return JsonResponse({
             "status": False,
             "message": "حدث خطأ اثناء محاولة قراءة الملف الرجاء التاكد من صحة البيانات الموجودة في الملف حسب التنسيق المذكور"
         }, status=400)
+    
+    if(len(series) < (160)):
+        return JsonResponse({
+        "status": False,
+        "message": "يجب ان تكون مدة البيانات في الملف على الاقل 6 شهور"
+    }, status=400)
+    
     return None
 
 def list_files(req):
